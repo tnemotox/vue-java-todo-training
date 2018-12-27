@@ -1,0 +1,12 @@
+spring:
+  messages:
+    basename: i18n/messages
+  thymeleaf:
+    cache: false
+server:
+  context-path: /todo
+
+logging:
+  level: 
+    sandbox.controller.*.*: DEBUG
+    sandbox.domain.service.**.*: DEBUG

@@ -1,0 +1,53 @@
+stages:
+  - build
+#  - test
+#  - sonar
+  - deploy
+
+# https://docs.gitlab.com/ce/ci/docker/using_docker_build.html#use-docker-in-docker-executor
+services:
+  - docker:dind
+
+variables:
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_DRIVER: overlay
+  MAVEN_CLI_OPTS: "-s config/settings.xml --batch-mode"
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+cache:
+  paths:
+    - .m2/repository/
+    - target/
+
+build:
+  image: maven:3
+  stage: build
+  script:
+    - mvn $MAVEN_CLI_OPTS package -Dmaven.test.skip=true
+#
+#test:
+#  stage: test
+#  script:
+#    - mvn $MAVEN_CLI_OPTS -Dmaven.javadoc.skip=true -P test-server jacoco:prepare-agent test jacoco:report
+#  allow_failure: true
+#  artifacts:
+#    reports:
+#      junit:
+#        - target/surefire-reports/TEST-*.xml
+#
+#sonar:
+#  stage: sonar
+#  script:
+#    - mvn $MAVEN_CLI_OPTS -Dmaven.test.skip=true --batch-mode verify sonar:sonar -Dsonar.analysis.mode=preview -Dsonar.gitlab.commit_sha=$CI_COMMIT_SHA -Dsonar.gitlab.ref_name=$CI_COMMIT_REF_NAME -Dsonar.gitlab.project_id=$CI_PROJECT_ID
+#    - mvn $MAVEN_CLI_OPTS  sonar:sonar
+#  artifacts:
+#    paths:
+#      - target/surefire-reports/
+#    name: "test"
+
+deploy:
+  image: danrspencer/concourse-ssh-scp-resource
+  stage: deploy
+  script:
+    - chmod 600 id_rsa
+    - scp -i ./id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null target/webapps/calculator.war root@ts-0001.agile.edu.ctpm.nttcom.co.jp:/tmp/
